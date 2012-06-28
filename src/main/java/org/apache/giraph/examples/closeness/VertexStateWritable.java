@@ -5,27 +5,26 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Writable;
 
 public class VertexStateWritable implements Writable {
   private BitfieldCounterWritable counter;
-  private MapWritable shortestPaths;
+  private OpenLongLongHashMapWritable shortestPaths;
   
   public VertexStateWritable() {
     this.counter = new BitfieldCounterWritable();
-    this.shortestPaths = new MapWritable();
+    this.shortestPaths = new OpenLongLongHashMapWritable();
   }
   public VertexStateWritable(Configuration conf) {
     counter = new BitfieldCounterWritable(conf);
-    shortestPaths = new MapWritable();
+    shortestPaths = new OpenLongLongHashMapWritable();
   }
   
   public BitfieldCounterWritable getCounter() {
     return counter;
   }
 
-  public MapWritable getShortestPaths() {
+  public OpenLongLongHashMapWritable getShortestPaths() {
     return shortestPaths;
   }
 

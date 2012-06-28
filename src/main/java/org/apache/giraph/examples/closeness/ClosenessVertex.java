@@ -67,21 +67,21 @@ public class ClosenessVertex
   @Override
   public void compute(Iterator<BitfieldCounterWritable> msgIterator) {
     int seenCountBefore = getVertexValue().getCounter().getCount();
-    
+
     while (msgIterator.hasNext()) {
       BitfieldCounterWritable inCounter = msgIterator.next();
       getVertexValue().getCounter().merge(inCounter);
     }
 
     int seenCountAfter = getVertexValue().getCounter().getCount();
-    
+
     if ((seenCountBefore != seenCountAfter) || (getSuperstep() == 0)) {
       sendMsgToAllEdges(getVertexValue().getCounter().copy());
     }
 
     // subtract 1 because our own bit is counted as well
-    getVertexValue().getShortestPaths().put(new LongWritable(getSuperstep()),
-        new LongWritable(getVertexValue().getCounter().getCount() - 1));
+    getVertexValue().getShortestPaths().put(getSuperstep(),
+        getVertexValue().getCounter().getCount() - 1);
 
     voteToHalt();
   }
@@ -137,7 +137,8 @@ public class ClosenessVertex
           LongWritable targetId = new LongWritable(jsonEdgeArray.getLong(i));
           edges.put(targetId, new IntWritable(1));
         }
-        VertexStateWritable vertexState = new VertexStateWritable(getContext().getConfiguration());
+        VertexStateWritable vertexState = new VertexStateWritable(getContext()
+            .getConfiguration());
         vertexState.getCounter().addNode(vertexId.get());
         vertex.initialize(vertexId, vertexState, edges, null);
       } catch (JSONException e) {
@@ -189,8 +190,15 @@ public class ClosenessVertex
         throws IOException, InterruptedException {
       JSONArray jsonVertex = new JSONArray();
       jsonVertex.put(vertex.getVertexId().get());
-      JSONObject values = new JSONObject(vertex.getVertexValue()
-          .getShortestPaths());
+      JSONObject values = new JSONObject();
+      OpenLongLongHashMapWritable shortestPaths = vertex.getVertexValue()
+          .getShortestPaths();
+      for (long key : shortestPaths.keys().elements()) {
+        try {
+          values.put("" + key, "" + shortestPaths.get(key));
+        } catch (JSONException e) {
+        }
+      }
       jsonVertex.put(values);
       getRecordWriter().write(new Text(jsonVertex.toString()), null);
     }
