@@ -18,51 +18,170 @@
 
 package org.apache.giraph.examples.closeness;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.giraph.graph.BasicVertex;
-import org.apache.giraph.graph.BspUtils;
-import org.apache.giraph.graph.EdgeListVertex;
 import org.apache.giraph.graph.GiraphJob;
-import org.apache.giraph.graph.VertexReader;
-import org.apache.giraph.graph.VertexWriter;
-import org.apache.giraph.lib.TextVertexInputFormat;
-import org.apache.giraph.lib.TextVertexInputFormat.TextVertexReader;
-import org.apache.giraph.lib.TextVertexOutputFormat;
-import org.apache.giraph.lib.TextVertexOutputFormat.TextVertexWriter;
+import org.apache.giraph.utils.UnmodifiableIntArrayIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Iterables;
 
 public class ClosenessVertex
     extends
-    EdgeListVertex<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable>
+    BasicVertex<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable>
     implements Tool {
 
+  /** Int represented vertex id */
+  private int id;
+  /** Int represented vertex value */
+  private VertexStateWritable value;
+  /** Int array of neighbor vertex ids */
+  private int[] neighbors;
+  /** Int array of messages */
+  private BitfieldCounterWritable[] messages;
   /** Class logger */
   private static final Logger LOG = Logger.getLogger(ClosenessVertex.class);
-
   /** Configuration */
   private Configuration conf;
+
+  @Override
+  public void initialize(IntWritable vertexId, VertexStateWritable vertexValue,
+      Map<IntWritable, NullWritable> edges,
+      Iterable<BitfieldCounterWritable> messages) {
+    id = vertexId.get();
+    value = vertexValue;
+    this.neighbors = new int[(edges != null) ? edges.size() : 0];
+    int n = 0;
+    if (edges != null) {
+      for (IntWritable neighbor : edges.keySet()) {
+        this.neighbors[n++] = neighbor.get();
+      }
+    }
+    this.messages = new BitfieldCounterWritable[(messages != null) ? Iterables
+        .size(messages) : 0];
+    if (messages != null) {
+      n = 0;
+      for (BitfieldCounterWritable message : messages) {
+        this.messages[n++] = message;
+      }
+    }
+  }
+
+  @Override
+  public IntWritable getVertexId() {
+    return new IntWritable(id);
+  }
+
+  @Override
+  public VertexStateWritable getVertexValue() {
+    return value;
+  }
+
+  @Override
+  public void setVertexValue(VertexStateWritable vertexValue) {
+    value = vertexValue;
+  }
+
+  @Override
+  public Iterator<IntWritable> getOutEdgesIterator() {
+    return new UnmodifiableIntArrayIterator(neighbors);
+  }
+
+  @Override
+  public NullWritable getEdgeValue(IntWritable targetVertexId) {
+    return NullWritable.get();
+  }
+
+  @Override
+  public boolean hasEdge(IntWritable targetVertexId) {
+    for (int neighbor : neighbors) {
+      if (neighbor == targetVertexId.get()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int getNumOutEdges() {
+    return neighbors.length;
+  }
+
+  @Override
+  public void sendMsgToAllEdges(final BitfieldCounterWritable message) {
+    for (int neighbor : neighbors) {
+      sendMsg(new IntWritable(neighbor), message);
+    }
+  }
+
+  @Override
+  public Iterable<BitfieldCounterWritable> getMessages() {
+    return new Iterable<BitfieldCounterWritable>() {
+      @Override
+      public Iterator<BitfieldCounterWritable> iterator() {
+        return new UnmodifiableBitfieldCounterWritableArrayIterator(messages) {
+        };
+      }
+    };
+  }
+
+  @Override
+  public void putMessages(Iterable<BitfieldCounterWritable> newMessages) {
+    messages = new BitfieldCounterWritable[Iterables.size(newMessages)];
+    int n = 0;
+    for (BitfieldCounterWritable message : newMessages) {
+      messages[n++] = message;
+    }
+  }
+
+  @Override
+  public void releaseResources() {
+    messages = new BitfieldCounterWritable[0];
+  }
+
+  @Override
+  public void write(final DataOutput out) throws IOException {
+    out.writeInt(id);
+    value.write(out);
+    out.writeInt(neighbors.length);
+    for (int n = 0; n < neighbors.length; n++) {
+      out.writeInt(neighbors[n]);
+    }
+    out.writeInt(messages.length);
+    for (int n = 0; n < messages.length; n++) {
+      messages[n].write(out);
+    }
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    id = in.readInt();
+    value.readFields(in);
+    int numEdges = in.readInt();
+    neighbors = new int[numEdges];
+    for (int n = 0; n < numEdges; n++) {
+      neighbors[n] = in.readInt();
+    }
+    int numMessages = in.readInt();
+    messages = new BitfieldCounterWritable[numMessages];
+    for (int n = 0; n < numMessages; n++) {
+      messages[n].readFields(in);
+    }
+  }
 
   @Override
   public void compute(Iterator<BitfieldCounterWritable> msgIterator) {
@@ -80,128 +199,10 @@ public class ClosenessVertex
     }
 
     // subtract 1 because our own bit is counted as well
-    getVertexValue().getShortestPaths().put(getSuperstep(),
+    getVertexValue().getShortestPaths().put((int)getSuperstep(),
         getVertexValue().getCounter().getCount() - 1);
 
     voteToHalt();
-  }
-
-  /**
-   * VertexInputFormat that supports {@link ClosenessVertex}
-   */
-  public static class ClosenessVertexInputFormat
-      extends
-      TextVertexInputFormat<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> {
-    @Override
-    public VertexReader<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> createVertexReader(
-        InputSplit split, TaskAttemptContext context) throws IOException {
-      return new ClosenessVertexReader(textInputFormat.createRecordReader(
-          split, context));
-    }
-  }
-
-  /**
-   * VertexReader that supports {@link ClosenessVertex}. In this case, the edge
-   * values are not used. The files should be in the following JSON format:
-   * JSONArray(<vertex id>, JSONArray(<dest vertex id>))
-   */
-  public static class ClosenessVertexReader
-      extends
-      TextVertexReader<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> {
-
-    /**
-     * Constructor with the line record reader.
-     * 
-     * @param lineRecordReader
-     *          Will read from this line.
-     */
-    public ClosenessVertexReader(
-        RecordReader<LongWritable, Text> lineRecordReader) {
-      super(lineRecordReader);
-    }
-
-    @Override
-    public BasicVertex<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> getCurrentVertex()
-        throws IOException, InterruptedException {
-      BasicVertex<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> vertex = BspUtils
-          .<LongWritable, VertexStateWritable, IntWritable, BitfieldCounterWritable> createVertex(getContext()
-              .getConfiguration());
-
-      Text line = getRecordReader().getCurrentValue();
-      try {
-        JSONArray jsonVertex = new JSONArray(line.toString());
-        LongWritable vertexId = new LongWritable(jsonVertex.getLong(0));
-        Map<LongWritable, IntWritable> edges = Maps.newHashMap();
-        JSONArray jsonEdgeArray = jsonVertex.getJSONArray(1);
-        for (int i = 0; i < jsonEdgeArray.length(); ++i) {
-          LongWritable targetId = new LongWritable(jsonEdgeArray.getLong(i));
-          edges.put(targetId, new IntWritable(1));
-        }
-        VertexStateWritable vertexState = new VertexStateWritable(getContext()
-            .getConfiguration());
-        vertexState.getCounter().addNode(vertexId.get());
-        vertex.initialize(vertexId, vertexState, edges, null);
-      } catch (JSONException e) {
-        throw new IllegalArgumentException(
-            "next: Couldn't get vertex from line " + line, e);
-      }
-      return vertex;
-    }
-
-    @Override
-    public boolean nextVertex() throws IOException, InterruptedException {
-
-      return getRecordReader().nextKeyValue();
-    }
-  }
-
-  /**
-   * VertexOutputFormat that supports {@link ClosenessVertex}
-   */
-  public static class ClosenessVertexOutputFormat extends
-      TextVertexOutputFormat<LongWritable, VertexStateWritable, IntWritable> {
-    @Override
-    public VertexWriter<LongWritable, VertexStateWritable, IntWritable> createVertexWriter(
-        TaskAttemptContext context) throws IOException, InterruptedException {
-      RecordWriter<Text, Text> recordWriter = textOutputFormat
-          .getRecordWriter(context);
-      return new ClosenessVertexWriter(recordWriter);
-    }
-  }
-
-  /**
-   * VertexWriter that supports {@link ClosenessVertex}
-   */
-  public static class ClosenessVertexWriter extends
-      TextVertexWriter<LongWritable, VertexStateWritable, IntWritable> {
-    /**
-     * Vertex writer with the internal line writer.
-     * 
-     * @param lineRecordWriter
-     *          will actually be written to.
-     */
-    public ClosenessVertexWriter(RecordWriter<Text, Text> lineRecordWriter) {
-      super(lineRecordWriter);
-    }
-
-    @Override
-    public void writeVertex(
-        BasicVertex<LongWritable, VertexStateWritable, IntWritable, ?> vertex)
-        throws IOException, InterruptedException {
-      JSONArray jsonVertex = new JSONArray();
-      jsonVertex.put(vertex.getVertexId().get());
-      JSONObject values = new JSONObject();
-      OpenLongLongHashMapWritable shortestPaths = vertex.getVertexValue()
-          .getShortestPaths();
-      for (long key : shortestPaths.keys().elements()) {
-        try {
-          values.put("" + key, "" + shortestPaths.get(key));
-        } catch (JSONException e) {
-        }
-      }
-      jsonVertex.put(values);
-      getRecordWriter().write(new Text(jsonVertex.toString()), null);
-    }
   }
 
   @Override
@@ -215,7 +216,7 @@ public class ClosenessVertex
   }
 
   /**
-   * hadoop jar target/giraph-0.2-SNAPSHOT-jar-with-dependencies.jar
+   * run with: hadoop jar target/giraph-0.2-SNAPSHOT-jar-with-dependencies.jar
    * org.apache.giraph.examples.closeness.ClosenessVertex closenessInputGraph
    * closenessOutputGraph 32 3
    */

@@ -113,7 +113,7 @@ public abstract class IntIntNullIntVertex extends
   }
 
   @Override
-  void releaseResources() {
+  public void releaseResources() {
     messages = new int[0];
   }
 

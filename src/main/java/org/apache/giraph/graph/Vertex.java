@@ -273,13 +273,13 @@ public abstract class Vertex<I extends WritableComparable,
    *
    * @param messages the messages sent to this vertex in the previous superstep
    */
-  abstract void putMessages(Iterable<M> messages);
+  public abstract void putMessages(Iterable<M> messages);
 
   /**
    * Release unnecessary resources (will be called after vertex returns from
    * {@link #compute(Iterable)})
    */
-  abstract void releaseResources();
+  public abstract void releaseResources();
 
   /**
    * Get the graph state for all workers.

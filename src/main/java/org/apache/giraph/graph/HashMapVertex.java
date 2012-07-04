@@ -198,7 +198,15 @@ public abstract class HashMapVertex<I extends WritableComparable,
   }
 
   @Override
-  void releaseResources() {
+  public void putMessages(Iterable<M> messages) {
+    msgList.clear();
+    for (M message : messages) {
+      msgList.add(message);
+    }
+  }
+
+  @Override
+  public void releaseResources() {
     // Hint to GC to free the messages
     messageList.clear();
   }

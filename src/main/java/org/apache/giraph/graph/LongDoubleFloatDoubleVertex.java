@@ -198,7 +198,7 @@ public abstract class LongDoubleFloatDoubleVertex extends
   }
 
   @Override
-  void putMessages(Iterable<DoubleWritable> messages) {
+  public void putMessages(Iterable<DoubleWritable> messages) {
     messageList.clear();
     for (DoubleWritable message : messages) {
       messageList.add(message.get());
@@ -206,7 +206,7 @@ public abstract class LongDoubleFloatDoubleVertex extends
   }
 
   @Override
-  void releaseResources() {
+  public void releaseResources() {
     // Hint to GC to free the messages
     messageList.clear();
   }

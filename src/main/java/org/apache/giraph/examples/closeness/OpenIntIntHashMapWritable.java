@@ -5,10 +5,10 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.mahout.math.map.OpenLongLongHashMap;
+import org.apache.mahout.math.map.OpenIntIntHashMap;
 
 @SuppressWarnings("serial")
-public class OpenLongLongHashMapWritable extends OpenLongLongHashMap
+public class OpenIntIntHashMapWritable extends OpenIntIntHashMap
     implements Writable {
 
   @Override
@@ -16,8 +16,8 @@ public class OpenLongLongHashMapWritable extends OpenLongLongHashMap
     // first write the capacity
     out.writeInt(table.length);
     for (int i = 0; i < table.length; ++i) {
-      out.writeLong(table[i]);
-      out.writeLong(values[i]);
+      out.writeInt(table[i]);
+      out.writeInt(values[i]);
       out.writeByte(state[i]);
     }
     out.writeInt(freeEntries);
@@ -26,13 +26,13 @@ public class OpenLongLongHashMapWritable extends OpenLongLongHashMap
   @Override
   public void readFields(DataInput in) throws IOException {
     int capacity = in.readInt();
-    table = new long[capacity];
-    values = new long[capacity];
+    table = new int[capacity];
+    values = new int[capacity];
     state = new byte[capacity];
     
     for (int i = 0; i < table.length; ++i) {
-      table[i] = in.readLong();
-      values[i] = in.readLong();
+      table[i] = in.readInt();
+      values[i] = in.readInt();
       state[i] = in.readByte();
     }
     freeEntries = in.readInt();
