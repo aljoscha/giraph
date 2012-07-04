@@ -6,10 +6,11 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
 
-public class BitfieldCounterWritable extends DistinctSeenCounterWritable {
+public class BitfieldCounterWritable implements Writable {
   public final static String NUM_BITS = "distinctcounter.numbits";
   private int numBits;
   private int[] bits;
@@ -38,14 +39,12 @@ public class BitfieldCounterWritable extends DistinctSeenCounterWritable {
     return result;
   }
 
-  @Override
   public void addNode(long n) {
     int intIndex = (int)(n / 32);
     int bitIndex = (int)(n % 32);
     bits[intIndex] |= (1 << bitIndex);
   }
   
-  @Override
   public int getCount() {
     int count = 0;
     for (int i = 0; i < bits.length; ++i) {
@@ -58,8 +57,7 @@ public class BitfieldCounterWritable extends DistinctSeenCounterWritable {
     return count;
   }
 
-  @Override
-  public void merge(DistinctSeenCounterWritable other) {
+  public void merge(BitfieldCounterWritable other) {
     Preconditions.checkArgument(other instanceof BitfieldCounterWritable, "Other is not a BitfieldCounterWritable.");
     BitfieldCounterWritable otherB = (BitfieldCounterWritable) other;
     Preconditions.checkState(this.numBits == otherB.numBits,
