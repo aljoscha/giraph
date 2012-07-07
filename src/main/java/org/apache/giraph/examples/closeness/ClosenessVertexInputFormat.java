@@ -14,8 +14,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.json.JSONArray;
-import org.json.JSONException;
 
 import com.google.common.collect.Maps;
 
@@ -34,9 +32,9 @@ public class ClosenessVertexInputFormat
   }
 
   /**
-   * VertexReader that supports {@link ClosenessVertex}. In this case, the
-   * edge values are not used. The files should be in the following JSON
-   * format: JSONArray(<vertex id>, JSONArray(<dest vertex id>))
+   * VertexReader that supports {@link ClosenessVertex}. In this case, the edge
+   * values are not used. The files should be in the following JSON format:
+   * JSONArray(<vertex id>, JSONArray(<dest vertex id>))
    */
   public static class ClosenessVertexReader
       extends
@@ -61,23 +59,20 @@ public class ClosenessVertexInputFormat
               .getConfiguration());
 
       Text line = getRecordReader().getCurrentValue();
-      try {
-        JSONArray jsonVertex = new JSONArray(line.toString());
-        IntWritable vertexId = new IntWritable(jsonVertex.getInt(0));
-        Map<IntWritable, NullWritable> edges = Maps.newHashMap();
-        JSONArray jsonEdgeArray = jsonVertex.getJSONArray(1);
-        for (int i = 0; i < jsonEdgeArray.length(); ++i) {
-          IntWritable targetId = new IntWritable(jsonEdgeArray.getInt(i));
-          edges.put(targetId, NullWritable.get());
-        }
-        VertexStateWritable vertexState = new VertexStateWritable(
-            getContext().getConfiguration());
-        vertexState.getCounter().addNode(vertexId.get());
-        vertex.initialize(vertexId, vertexState, edges, null);
-      } catch (JSONException e) {
-        throw new IllegalArgumentException(
-            "next: Couldn't get vertex from line " + line, e);
+      String lineStr = line.toString();
+      String parts[] = lineStr.split("\\t");
+      IntWritable vertexId = new IntWritable(Integer.parseInt(parts[0]));
+
+      String targetParts[] = parts[1].split(",");
+      Map<IntWritable, NullWritable> edges = Maps.newHashMap();
+      for (String targetStr : targetParts) {
+        IntWritable targetId = new IntWritable(Integer.parseInt(targetStr));
+        edges.put(targetId, NullWritable.get());
       }
+      VertexStateWritable vertexState = new VertexStateWritable(getContext()
+          .getConfiguration());
+      vertexState.getCounter().addNode(vertexId.get());
+      vertex.initialize(vertexId, vertexState, edges, null);
       return vertex;
     }
 
