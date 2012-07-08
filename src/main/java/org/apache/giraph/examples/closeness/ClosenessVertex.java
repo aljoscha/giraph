@@ -57,6 +57,11 @@ public class ClosenessVertex
   private static final Logger LOG = Logger.getLogger(ClosenessVertex.class);
   /** Configuration */
   private Configuration conf;
+  
+  public ClosenessVertex() {
+    id = -1;
+    value = new VertexStateWritable();
+  }
 
   @Override
   public void initialize(IntWritable vertexId, VertexStateWritable vertexValue,
