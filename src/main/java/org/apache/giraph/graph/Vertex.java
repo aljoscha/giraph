@@ -104,6 +104,15 @@ public abstract class Vertex<I extends WritableComparable,
   }
 
   /**
+   * Set the vertex id
+   *
+   * @param id Vertex id is set to this (instantiated by the user)
+   */
+  public void setVertexId(I id) {
+    
+  }
+  
+  /**
    * Get the vertex id.
    *
    * @return My vertex id.

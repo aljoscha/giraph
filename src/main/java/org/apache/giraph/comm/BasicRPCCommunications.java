@@ -1263,6 +1263,7 @@ else[HADOOP_NON_SECURE]*/
             service.getVertexPartitionOwner(vertexIndex));
       }
       if (vertex != null) {
+        ((BasicVertex<I, V, E, M>) vertex).setVertexId(vertexIndex);
         partition.putVertex(vertex);
       } else if (originalVertex != null) {
         partition.removeVertex(originalVertex.getId());

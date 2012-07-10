@@ -87,6 +87,11 @@ public class ClosenessVertex
   }
 
   @Override
+  public void setVertexId(IntWritable id) {
+    this.id = id.get();
+  }
+  
+  @Override
   public IntWritable getVertexId() {
     return new IntWritable(id);
   }

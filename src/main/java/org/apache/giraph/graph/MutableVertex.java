@@ -36,7 +36,7 @@ import java.util.Map;
 @SuppressWarnings("rawtypes")
 public abstract class MutableVertex<I extends WritableComparable,
     V extends Writable, E extends Writable, M extends Writable>
-    extends Vertex<I, V, E, M> {
+    extends BasicVertex<I, V, E, M> {
   /**
    * Add an edge for this vertex (happens immediately)
    *
