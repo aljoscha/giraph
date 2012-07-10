@@ -22,10 +22,10 @@ import com.google.common.collect.Maps;
  */
 public class FMClosenessVertexInputFormat
     extends
-    TextVertexInputFormat<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> {
+    TextVertexInputFormat<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> {
 
   @Override
-  public VertexReader<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> createVertexReader(
+  public VertexReader<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> createVertexReader(
       InputSplit split, TaskAttemptContext context) throws IOException {
     return new FMClosenessVertexInputFormat.ClosenessVertexReader(
         textInputFormat.createRecordReader(split, context));
@@ -38,7 +38,7 @@ public class FMClosenessVertexInputFormat
    */
   public static class ClosenessVertexReader
       extends
-      TextVertexReader<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> {
+      TextVertexReader<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> {
 
     /**
      * Constructor with the line record reader.
@@ -52,10 +52,10 @@ public class FMClosenessVertexInputFormat
     }
 
     @Override
-    public BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> getCurrentVertex()
+    public BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> getCurrentVertex()
         throws IOException, InterruptedException {
-      BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> vertex = BspUtils
-          .<IntWritable, FMVertexStateWritable, NullWritable, BitfieldCounterWritable> createVertex(getContext()
+      BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> vertex = BspUtils
+          .<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> createVertex(getContext()
               .getConfiguration());
 
       Text line = getRecordReader().getCurrentValue();
@@ -69,9 +69,7 @@ public class FMClosenessVertexInputFormat
         IntWritable targetId = new IntWritable(Integer.parseInt(targetStr));
         edges.put(targetId, NullWritable.get());
       }
-      FMVertexStateWritable vertexState = new FMVertexStateWritable(getContext()
-          .getConfiguration());
-      vertexState.getCounter().addNode(vertexId.get());
+      FMVertexStateWritable vertexState = new FMVertexStateWritable();
       vertex.initialize(vertexId, vertexState, edges, null);
       return vertex;
     }

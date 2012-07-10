@@ -69,6 +69,7 @@ public class FMClosenessVertex
       Iterable<FMSketchWritable> messages) {
     id = vertexId.get();
     value = vertexValue;
+    value.getCounter().addNode(id);
     this.neighbors = new int[(edges != null) ? edges.size() : 0];
     int n = 0;
     if (edges != null) {
@@ -180,6 +181,7 @@ public class FMClosenessVertex
   @Override
   public void readFields(DataInput in) throws IOException {
     id = in.readInt();
+    value = new FMVertexStateWritable(getConf());
     value.readFields(in);
     int numEdges = in.readInt();
     neighbors = new int[numEdges];

@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 
 public class FMSketchWritable implements Writable {
   public final static String NUM_BUCKETS = "fmsketch.numbuckets";
+  private final static int HARD_NUM_BUCKETS = 32;
   private final static double MAGIC_CONSTANT = 0.77351;
   private final static int MAX_LENGHT = 32;
   private int numBuckets;
@@ -19,18 +20,20 @@ public class FMSketchWritable implements Writable {
   boolean initialized = false;
 
   public FMSketchWritable() {
-    this.numBuckets = 0;
-    this.buckets = new int[0];
+    this.numBuckets = HARD_NUM_BUCKETS;
+    this.buckets = new int[numBuckets];
+    initialized = true;
   }
 
   public FMSketchWritable(int numBuckets) {
-    this.numBuckets = numBuckets;
-    buckets = new int[numBuckets];
+    this.numBuckets = HARD_NUM_BUCKETS;
+    buckets = new int[this.numBuckets];
     initialized = true;
   }
 
   public FMSketchWritable(Configuration config) {
-    this.numBuckets = config.getInt(NUM_BUCKETS, 64);
+    this.numBuckets = config.getInt(NUM_BUCKETS, 32);
+    this.numBuckets = HARD_NUM_BUCKETS;
     buckets = new int[numBuckets];
     initialized = true;
   }
@@ -45,7 +48,7 @@ public class FMSketchWritable implements Writable {
 
   private int firstOneBit(int value) {
     int index = 0;
-    while ((value & 1) == 0) {
+    while ((value & 1) == 0 && index < 32) {
       ++index;
       value >>= 1;
     }
