@@ -12,23 +12,26 @@ import com.google.common.base.Preconditions;
 
 public class BitfieldCounterWritable implements Writable {
   public final static String NUM_BITS = "distinctcounter.numbits";
+  public final static int HARD_NUM_BITS = 65000;
   private int numBits;
   private int[] bits;
 
   public BitfieldCounterWritable() {
-    this.numBits = 0;
-    this.bits = new int[0];
+    this.numBits = HARD_NUM_BITS;
+    int numInts = (int) Math.ceil(this.numBits / 32.0);
+    this.bits = new int[numInts];
   }
   
   public BitfieldCounterWritable(int numBits) {
-    this.numBits = numBits;
-    int numInts = (int) Math.ceil(numBits / 32.0);
+    this.numBits = HARD_NUM_BITS;
+    int numInts = (int) Math.ceil(this.numBits / 32.0);
     bits = new int[numInts];
   }
   
   public BitfieldCounterWritable(Configuration config) {
-    this.numBits = config.getInt(NUM_BITS, 32);
-    int numInts = (int) Math.ceil(numBits / 32.0);
+    //this.numBits = config.getInt(NUM_BITS, 32);
+    this.numBits = HARD_NUM_BITS;
+    int numInts = (int) Math.ceil(this.numBits / 32.0);
     bits = new int[numInts];
   }
   
@@ -61,7 +64,7 @@ public class BitfieldCounterWritable implements Writable {
     Preconditions.checkArgument(other instanceof BitfieldCounterWritable, "Other is not a BitfieldCounterWritable.");
     BitfieldCounterWritable otherB = (BitfieldCounterWritable) other;
     Preconditions.checkState(this.numBits == otherB.numBits,
-        "Number of bits does not match.");
+        "Number of bits does not match: " + numBits + " other: " + otherB.numBits);
     for (int i = 0; i < bits.length; ++i) {
       bits[i] |= otherB.bits[i];
     }
