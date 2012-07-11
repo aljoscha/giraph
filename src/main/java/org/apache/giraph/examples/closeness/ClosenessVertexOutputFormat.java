@@ -52,13 +52,10 @@ public class ClosenessVertexOutputFormat extends
           .getShortestPaths();
       int numVerticesReachable = 0;
       int sumLengths = 0;
-      System.out.println("VID: " + vertex.getVertexId().get());
       for (int key : shortestPaths.keys().elements()) {
         if (key < 1) {
           continue;
         }
-        System.out.println("KEY: " + key);
-        System.out.println("VAL: " + shortestPaths.get(key));
         int newlyReachable = shortestPaths.get(key) - shortestPaths.get(key-1);
         sumLengths += key * newlyReachable;
         if (shortestPaths.get(key) > numVerticesReachable) {
