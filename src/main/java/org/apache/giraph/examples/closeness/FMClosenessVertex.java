@@ -57,15 +57,15 @@ public class FMClosenessVertex
   private static final Logger LOG = Logger.getLogger(FMClosenessVertex.class);
   /** Configuration */
   private Configuration conf;
-  
+
   public FMClosenessVertex() {
     id = -1;
     value = new FMVertexStateWritable();
   }
 
   @Override
-  public void initialize(IntWritable vertexId, FMVertexStateWritable vertexValue,
-      Map<IntWritable, NullWritable> edges,
+  public void initialize(IntWritable vertexId,
+      FMVertexStateWritable vertexValue, Map<IntWritable, NullWritable> edges,
       Iterable<FMSketchWritable> messages) {
     id = vertexId.get();
     value = vertexValue;
@@ -91,7 +91,7 @@ public class FMClosenessVertex
   public void setVertexId(IntWritable id) {
     this.id = id.get();
   }
-  
+
   @Override
   public IntWritable getVertexId() {
     return new IntWritable(id);
@@ -210,8 +210,25 @@ public class FMClosenessVertex
       sendMsgToAllEdges(getVertexValue().getCounter().copy());
     }
 
+    // determine last iteration for which we set a value,
+    // we need to copy this to all iterations up to this one
+    // because the number of reachable vertices stays the same
+    // when the compute method is not invoked
+    if (getSuperstep() > 0) {
+      int i = (int) getSuperstep() - 1;
+      while (i > 0) {
+        if (getVertexValue().getShortestPaths().containsKey(i)) {
+          break;
+        }
+        --i;
+      }
+      int numReachable = getVertexValue().getShortestPaths().get(i);
+      for (; i < getSuperstep(); ++i) {
+        getVertexValue().getShortestPaths().put(i, numReachable);
+      }
+    }
     // subtract 1 because our own bit is counted as well
-    getVertexValue().getShortestPaths().put((int)getSuperstep(),
+    getVertexValue().getShortestPaths().put((int) getSuperstep(),
         getVertexValue().getCounter().getCount() - 1);
 
     voteToHalt();

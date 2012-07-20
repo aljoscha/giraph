@@ -57,7 +57,7 @@ public class ClosenessVertex
   private static final Logger LOG = Logger.getLogger(ClosenessVertex.class);
   /** Configuration */
   private Configuration conf;
-  
+
   public ClosenessVertex() {
     id = -1;
     value = new VertexStateWritable();
@@ -91,7 +91,7 @@ public class ClosenessVertex
   public void setVertexId(IntWritable id) {
     this.id = id.get();
   }
-  
+
   @Override
   public IntWritable getVertexId() {
     return new IntWritable(id);
@@ -210,8 +210,25 @@ public class ClosenessVertex
       sendMsgToAllEdges(getVertexValue().getCounter().copy());
     }
 
+    // determine last iteration for which we set a value,
+    // we need to copy this to all iterations up to this one
+    // because the number of reachable vertices stays the same
+    // when the compute method is not invoked
+    if (getSuperstep() > 0) {
+      int i = (int) getSuperstep() - 1;
+      while (i > 0) {
+        if (getVertexValue().getShortestPaths().containsKey(i)) {
+          break;
+        }
+        --i;
+      }
+      int numReachable = getVertexValue().getShortestPaths().get(i);
+      for (; i < getSuperstep(); ++i) {
+        getVertexValue().getShortestPaths().put(i, numReachable);
+      }
+    }
     // subtract 1 because our own bit is counted as well
-    getVertexValue().getShortestPaths().put((int)getSuperstep(),
+    getVertexValue().getShortestPaths().put((int) getSuperstep(),
         getVertexValue().getCounter().getCount() - 1);
 
     voteToHalt();
