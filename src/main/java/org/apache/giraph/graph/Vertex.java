@@ -102,15 +102,6 @@ public abstract class Vertex<I extends WritableComparable,
   public long getSuperstep() {
     return getGraphState().getSuperstep();
   }
-
-  /**
-   * Set the vertex id
-   *
-   * @param id Vertex id is set to this (instantiated by the user)
-   */
-  public void setVertexId(I id) {
-    
-  }
   
   /**
    * Get the vertex id.
@@ -282,13 +273,13 @@ public abstract class Vertex<I extends WritableComparable,
    *
    * @param messages the messages sent to this vertex in the previous superstep
    */
-  public abstract void putMessages(Iterable<M> messages);
+  abstract void putMessages(Iterable<M> messages);
 
   /**
    * Release unnecessary resources (will be called after vertex returns from
    * {@link #compute(Iterable)})
    */
-  public abstract void releaseResources();
+  abstract void releaseResources();
 
   /**
    * Get the graph state for all workers.

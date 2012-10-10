@@ -2,57 +2,44 @@ package org.apache.giraph.examples.closeness;
 
 import java.io.IOException;
 
-import org.apache.giraph.graph.BasicVertex;
-import org.apache.giraph.graph.VertexWriter;
-import org.apache.giraph.lib.TextVertexOutputFormat;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.TextVertexOutputFormat;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.mahout.math.list.IntArrayList;
+import org.apache.mahout.math.list.LongArrayList;
 
 /**
  * VertexOutputFormat that supports {@link ClosenessVertex}
  */
 public class ClosenessVertexOutputFormat extends
-    TextVertexOutputFormat<IntWritable, VertexStateWritable, NullWritable> {
+    TextVertexOutputFormat<LongWritable, VertexStateWritable, NullWritable> {
 
   @Override
-  public VertexWriter<IntWritable, VertexStateWritable, NullWritable> createVertexWriter(
+  public TextVertexWriter createVertexWriter(
       TaskAttemptContext context) throws IOException, InterruptedException {
-    RecordWriter<Text, Text> recordWriter = textOutputFormat
-        .getRecordWriter(context);
-    return new ClosenessVertexOutputFormat.ClosenessVertexWriter(recordWriter);
+    return new ClosenessVertexWriter();
   }
 
   /**
    * VertexWriter that supports {@link ClosenessVertex}
    */
-  public static class ClosenessVertexWriter extends
-      TextVertexWriter<IntWritable, VertexStateWritable, NullWritable> {
-    /**
-     * Vertex writer with the internal line writer.
-     * 
-     * @param lineRecordWriter
-     *          will actually be written to.
-     */
-    public ClosenessVertexWriter(RecordWriter<Text, Text> lineRecordWriter) {
-      super(lineRecordWriter);
-    }
+  public class ClosenessVertexWriter extends
+      TextVertexWriter {
 
     @Override
     public void writeVertex(
-        BasicVertex<IntWritable, VertexStateWritable, NullWritable, ?> vertex)
+        Vertex<LongWritable, VertexStateWritable, NullWritable, ?> vertex)
         throws IOException, InterruptedException {
       StringBuilder result = new StringBuilder();
-      result.append(vertex.getVertexId().get());
+      result.append(vertex.getId().get());
       result.append("\t");
-      OpenIntIntHashMapWritable shortestPaths = vertex.getVertexValue()
+      OpenLongIntHashMapWritable shortestPaths = vertex.getValue()
           .getShortestPaths();
       int numVerticesReachable = 0;
       int sumLengths = 0;
-      for (int key : shortestPaths.keys().elements()) {
+      for (long key : shortestPaths.keys().elements()) {
         if (key < 1) {
           continue;
         }
@@ -71,9 +58,9 @@ public class ClosenessVertexOutputFormat extends
       result.append(closeness);
       result.append("\t");
       
-      IntArrayList keys = shortestPaths.keys();
+      LongArrayList keys = shortestPaths.keys();
       keys.sort();
-      for (int key : keys.elements()) {
+      for (long key : keys.elements()) {
         result.append(key);
         result.append(":");
         result.append(shortestPaths.get(key));

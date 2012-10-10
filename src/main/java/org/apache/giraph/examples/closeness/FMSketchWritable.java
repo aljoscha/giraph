@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 
 public class FMSketchWritable implements Writable {
   public final static String NUM_BUCKETS = "fmsketch.numbuckets";
-  private final static int HARD_NUM_BUCKETS = 64;
+  private final static int HARD_NUM_BUCKETS = 32;
   private final static double MAGIC_CONSTANT = 0.77351;
   private final static int MAX_LENGHT = 32;
   private int numBuckets;

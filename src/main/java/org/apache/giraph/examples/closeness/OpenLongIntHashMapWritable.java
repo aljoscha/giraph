@@ -5,10 +5,10 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Writable;
-import org.apache.mahout.math.map.OpenIntIntHashMap;
+import org.apache.mahout.math.map.OpenLongIntHashMap;
 
 @SuppressWarnings("serial")
-public class OpenIntIntHashMapWritable extends OpenIntIntHashMap
+public class OpenLongIntHashMapWritable extends OpenLongIntHashMap
     implements Writable {
 
   @Override
@@ -16,7 +16,7 @@ public class OpenIntIntHashMapWritable extends OpenIntIntHashMap
     // first write the capacity
     out.writeInt(table.length);
     for (int i = 0; i < table.length; ++i) {
-      out.writeInt(table[i]);
+      out.writeLong(table[i]);
       out.writeInt(values[i]);
       out.writeByte(state[i]);
     }
@@ -26,7 +26,7 @@ public class OpenIntIntHashMapWritable extends OpenIntIntHashMap
   @Override
   public void readFields(DataInput in) throws IOException {
     int capacity = in.readInt();
-    table = new int[capacity];
+    table = new long[capacity];
     values = new int[capacity];
     state = new byte[capacity];
     

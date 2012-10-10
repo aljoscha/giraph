@@ -9,22 +9,22 @@ import org.apache.hadoop.io.Writable;
 
 public class FMVertexStateWritable implements Writable {
   private FMSketchWritable counter;
-  private OpenIntIntHashMapWritable shortestPaths;
+  private OpenLongIntHashMapWritable shortestPaths;
   
   public FMVertexStateWritable() {
     this.counter = new FMSketchWritable();
-    this.shortestPaths = new OpenIntIntHashMapWritable();
+    this.shortestPaths = new OpenLongIntHashMapWritable();
   }
   public FMVertexStateWritable(Configuration conf) {
     counter = new FMSketchWritable(conf);
-    shortestPaths = new OpenIntIntHashMapWritable();
+    shortestPaths = new OpenLongIntHashMapWritable();
   }
   
   public FMSketchWritable getCounter() {
     return counter;
   }
 
-  public OpenIntIntHashMapWritable getShortestPaths() {
+  public OpenLongIntHashMapWritable getShortestPaths() {
     return shortestPaths;
   }
 

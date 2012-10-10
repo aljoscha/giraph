@@ -3,16 +3,13 @@ package org.apache.giraph.examples.closeness;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.giraph.graph.BasicVertex;
 import org.apache.giraph.graph.BspUtils;
-import org.apache.giraph.graph.VertexReader;
-import org.apache.giraph.lib.TextVertexInputFormat;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.TextVertexInputFormat;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import com.google.common.collect.Maps;
@@ -22,13 +19,12 @@ import com.google.common.collect.Maps;
  */
 public class ClosenessVertexInputFormat
     extends
-    TextVertexInputFormat<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> {
+    TextVertexInputFormat<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> {
 
   @Override
-  public VertexReader<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> createVertexReader(
+  public ClosenessVertexReader createVertexReader(
       InputSplit split, TaskAttemptContext context) throws IOException {
-    return new ClosenessVertexInputFormat.ClosenessVertexReader(
-        textInputFormat.createRecordReader(split, context));
+    return new ClosenessVertexReader();
   }
 
   /**
@@ -36,37 +32,26 @@ public class ClosenessVertexInputFormat
    * values are not used. The files should be in the following JSON format:
    * JSONArray(<vertex id>, JSONArray(<dest vertex id>))
    */
-  public static class ClosenessVertexReader
+  public class ClosenessVertexReader
       extends
-      TextVertexReader<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> {
-
-    /**
-     * Constructor with the line record reader.
-     * 
-     * @param lineRecordReader
-     *          Will read from this line.
-     */
-    public ClosenessVertexReader(
-        RecordReader<LongWritable, Text> lineRecordReader) {
-      super(lineRecordReader);
-    }
+      TextVertexInputFormat<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable>.TextVertexReader {
 
     @Override
-    public BasicVertex<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> getCurrentVertex()
+    public Vertex<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> getCurrentVertex()
         throws IOException, InterruptedException {
-      BasicVertex<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> vertex = BspUtils
-          .<IntWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> createVertex(getContext()
+      Vertex<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> vertex = BspUtils
+          .<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> createVertex(getContext()
               .getConfiguration());
 
       Text line = getRecordReader().getCurrentValue();
       String lineStr = line.toString();
       String parts[] = lineStr.split("\\t");
-      IntWritable vertexId = new IntWritable(Integer.parseInt(parts[0]));
+      LongWritable vertexId = new LongWritable(Integer.parseInt(parts[0]));
 
       String targetParts[] = parts[1].split(",");
-      Map<IntWritable, NullWritable> edges = Maps.newHashMap();
+      Map<LongWritable, NullWritable> edges = Maps.newHashMap();
       for (String targetStr : targetParts) {
-        IntWritable targetId = new IntWritable(Integer.parseInt(targetStr));
+        LongWritable targetId = new LongWritable(Integer.parseInt(targetStr));
         edges.put(targetId, NullWritable.get());
       }
       VertexStateWritable vertexState = new VertexStateWritable(getContext()
@@ -78,7 +63,6 @@ public class ClosenessVertexInputFormat
 
     @Override
     public boolean nextVertex() throws IOException, InterruptedException {
-
       return getRecordReader().nextKeyValue();
     }
   }

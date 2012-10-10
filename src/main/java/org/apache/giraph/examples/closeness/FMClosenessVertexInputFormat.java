@@ -3,16 +3,13 @@ package org.apache.giraph.examples.closeness;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.giraph.graph.BasicVertex;
 import org.apache.giraph.graph.BspUtils;
-import org.apache.giraph.graph.VertexReader;
-import org.apache.giraph.lib.TextVertexInputFormat;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.TextVertexInputFormat;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import com.google.common.collect.Maps;
@@ -22,13 +19,12 @@ import com.google.common.collect.Maps;
  */
 public class FMClosenessVertexInputFormat
     extends
-    TextVertexInputFormat<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> {
+    TextVertexInputFormat<LongWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> {
 
   @Override
-  public VertexReader<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> createVertexReader(
+  public ClosenessVertexReader createVertexReader(
       InputSplit split, TaskAttemptContext context) throws IOException {
-    return new FMClosenessVertexInputFormat.ClosenessVertexReader(
-        textInputFormat.createRecordReader(split, context));
+    return new ClosenessVertexReader();
   }
 
   /**
@@ -36,47 +32,37 @@ public class FMClosenessVertexInputFormat
    * values are not used. The files should be in the following JSON format:
    * JSONArray(<vertex id>, JSONArray(<dest vertex id>))
    */
-  public static class ClosenessVertexReader
+  public class ClosenessVertexReader
       extends
-      TextVertexReader<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> {
-
-    /**
-     * Constructor with the line record reader.
-     * 
-     * @param lineRecordReader
-     *          Will read from this line.
-     */
-    public ClosenessVertexReader(
-        RecordReader<LongWritable, Text> lineRecordReader) {
-      super(lineRecordReader);
-    }
+      TextVertexInputFormat<LongWritable, FMVertexStateWritable, NullWritable, FMSketchWritable>.TextVertexReader {
 
     @Override
-    public BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> getCurrentVertex()
+    public Vertex<LongWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> getCurrentVertex()
         throws IOException, InterruptedException {
-      BasicVertex<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> vertex = BspUtils
-          .<IntWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> createVertex(getContext()
+      Vertex<LongWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> vertex = BspUtils
+          .<LongWritable, FMVertexStateWritable, NullWritable, FMSketchWritable> createVertex(getContext()
               .getConfiguration());
 
       Text line = getRecordReader().getCurrentValue();
       String lineStr = line.toString();
       String parts[] = lineStr.split("\\t");
-      IntWritable vertexId = new IntWritable(Integer.parseInt(parts[0]));
+      LongWritable vertexId = new LongWritable(Integer.parseInt(parts[0]));
 
       String targetParts[] = parts[1].split(",");
-      Map<IntWritable, NullWritable> edges = Maps.newHashMap();
+      Map<LongWritable, NullWritable> edges = Maps.newHashMap();
       for (String targetStr : targetParts) {
-        IntWritable targetId = new IntWritable(Integer.parseInt(targetStr));
+        LongWritable targetId = new LongWritable(Integer.parseInt(targetStr));
         edges.put(targetId, NullWritable.get());
       }
-      FMVertexStateWritable vertexState = new FMVertexStateWritable();
+      FMVertexStateWritable vertexState = new FMVertexStateWritable(getContext()
+          .getConfiguration());
+      vertexState.getCounter().addNode((int)vertexId.get());
       vertex.initialize(vertexId, vertexState, edges, null);
       return vertex;
     }
 
     @Override
     public boolean nextVertex() throws IOException, InterruptedException {
-
       return getRecordReader().nextKeyValue();
     }
   }

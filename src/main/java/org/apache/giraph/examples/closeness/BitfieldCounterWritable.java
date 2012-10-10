@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 
 public class BitfieldCounterWritable implements Writable {
   public final static String NUM_BITS = "distinctcounter.numbits";
-  public final static int HARD_NUM_BITS = 65000;
+  public final static int HARD_NUM_BITS = 32;
   private int numBits;
   private int[] bits;
 

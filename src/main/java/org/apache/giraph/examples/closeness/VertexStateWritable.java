@@ -9,22 +9,22 @@ import org.apache.hadoop.io.Writable;
 
 public class VertexStateWritable implements Writable {
   private BitfieldCounterWritable counter;
-  private OpenIntIntHashMapWritable shortestPaths;
+  private OpenLongIntHashMapWritable shortestPaths;
   
   public VertexStateWritable() {
     this.counter = new BitfieldCounterWritable();
-    this.shortestPaths = new OpenIntIntHashMapWritable();
+    this.shortestPaths = new OpenLongIntHashMapWritable();
   }
   public VertexStateWritable(Configuration conf) {
     counter = new BitfieldCounterWritable(conf);
-    shortestPaths = new OpenIntIntHashMapWritable();
+    shortestPaths = new OpenLongIntHashMapWritable();
   }
   
   public BitfieldCounterWritable getCounter() {
     return counter;
   }
 
-  public OpenIntIntHashMapWritable getShortestPaths() {
+  public OpenLongIntHashMapWritable getShortestPaths() {
     return shortestPaths;
   }
 

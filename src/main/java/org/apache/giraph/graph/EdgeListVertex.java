@@ -168,19 +168,12 @@ public abstract class EdgeListVertex<I extends WritableComparable,
     for (M message : messageList) {
       message.write(out);
     }
+    
     out.writeBoolean(isHalted());
   }
 
   @Override
-  public void putMessages(Iterable<M> messages) {
-    msgList.clear();
-    for (M message : messages) {
-      msgList.add(message);
-    }
-  }
-
-  @Override
-  public void releaseResources() {
+  void releaseResources() {
     // Hint to GC to free the messages
     messageList.clear();
   }
