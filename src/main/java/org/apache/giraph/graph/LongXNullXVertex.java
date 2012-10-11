@@ -28,10 +28,11 @@ import org.apache.giraph.utils.UnmodifiableLongNullEdgeArrayIterable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
-import org.apache.log4j.Logger;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * Simple implementation of {@link Vertex} using an long as id,
@@ -118,14 +119,18 @@ public abstract class LongXNullXVertex<V extends Writable, M extends Writable>
   public void write(final DataOutput out) throws IOException {
     getId().write(out);
     getValue().write(out);
+    
     out.writeInt(neighbors.length);
     for (int n = 0; n < neighbors.length; n++) {
       out.writeLong(neighbors[n]);
     }
+    
     out.writeInt(messageList.size());
     for (M message : messageList) {
       message.write(out);
     }
+    
+    out.writeBoolean(isHalted());
   }
 
   @Override
@@ -139,8 +144,9 @@ public abstract class LongXNullXVertex<V extends Writable, M extends Writable>
     int numEdges = in.readInt();
     neighbors = new long[numEdges];
     for (int n = 0; n < numEdges; n++) {
-      neighbors[n] = in.readInt();
+      neighbors[n] = in.readLong();
     }
+    
     
     int numMessages = in.readInt();
     messageList = Lists.newArrayListWithCapacity(numMessages);

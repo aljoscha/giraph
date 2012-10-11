@@ -20,6 +20,7 @@ package org.apache.giraph.examples.closeness;
 
 import java.util.Map;
 
+import org.apache.giraph.GiraphConfiguration;
 import org.apache.giraph.graph.GiraphJob;
 import org.apache.giraph.graph.LongXNullXVertex;
 import org.apache.hadoop.conf.Configuration;
@@ -30,33 +31,36 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 
-public class ClosenessVertex
-    extends
-    LongXNullXVertex<VertexStateWritable, BitfieldCounterWritable>
-    implements Tool {
+public class ClosenessVertex extends
+    LongXNullXVertex<VertexStateWritable, BitfieldCounterWritable> implements
+    Tool {
 
-  /** Class logger */
-  private static final Logger LOG = Logger.getLogger(ClosenessVertex.class);
   /** Configuration */
   private Configuration conf;
 
-
   @Override
-  public void initialize(LongWritable vertexId, VertexStateWritable vertexValue,
-      Map<LongWritable, NullWritable> edges,
+  public void initialize(LongWritable vertexId,
+      VertexStateWritable vertexValue, Map<LongWritable, NullWritable> edges,
       Iterable<BitfieldCounterWritable> messages) {
     super.initialize(vertexId, vertexValue, edges, messages);
-    getValue().getCounter().addNode(getId().get());
+    if (vertexValue == null || vertexValue.getNumBits() <= 0) {
+      // the getConfiguration() calls seems not to work so we hardcode it here
+      int numBits = 32;
+       //getContext().getConfiguration().getInt(BitfieldCounterWritable.NUM_BITS,
+       //32);
+      vertexValue = new VertexStateWritable(numBits);
+      vertexValue.getCounter().addNode(getId().get());
+      setValue(vertexValue);
+    }
   }
-  
+
   // Needed for Tool interface
   @Override
   public void setConf(Configuration conf) {
-    this.setConf(conf);
+    this.conf = conf;
   }
 
   @Override
@@ -108,16 +112,19 @@ public class ClosenessVertex
         "run: Must have 4 arguments <input path> <output path> "
             + "<num bits> <# of workers>");
 
-    GiraphJob job = new GiraphJob(getConf(), getClass().getName());
+    GiraphJob job = new GiraphJob(new Configuration(), getClass().getName());
     job.getConfiguration().setVertexClass(getClass());
-    job.getConfiguration().setVertexInputFormatClass(ClosenessVertexInputFormat.class);
-    job.getConfiguration().setVertexOutputFormatClass(ClosenessVertexOutputFormat.class);
+    job.getConfiguration().setVertexInputFormatClass(
+        ClosenessVertexInputFormat.class);
+    job.getConfiguration().setVertexOutputFormatClass(
+        ClosenessVertexOutputFormat.class);
     FileInputFormat.addInputPath(job.getInternalJob(), new Path(argArray[0]));
     FileOutputFormat.setOutputPath(job.getInternalJob(), new Path(argArray[1]));
     job.getConfiguration().setInt(BitfieldCounterWritable.NUM_BITS,
         Integer.parseInt(argArray[2]));
-    job.getConfiguration().setWorkerConfiguration(Integer.parseInt(argArray[3]),
-        Integer.parseInt(argArray[3]), 100.0f);
+    job.getConfiguration().setWorkerConfiguration(
+        Integer.parseInt(argArray[3]), Integer.parseInt(argArray[3]), 100.0f);
+    job.getConfiguration().setBoolean(GiraphConfiguration.USE_NETTY, true);
 
     return job.run(true) ? 0 : -1;
   }

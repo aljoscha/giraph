@@ -5,32 +5,25 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
 
 public class BitfieldCounterWritable implements Writable {
   public final static String NUM_BITS = "distinctcounter.numbits";
-  public final static int HARD_NUM_BITS = 32;
   private int numBits;
   private int[] bits;
 
   public BitfieldCounterWritable() {
-    this.numBits = HARD_NUM_BITS;
-    int numInts = (int) Math.ceil(this.numBits / 32.0);
-    this.bits = new int[numInts];
+    // Empty if no bit length specified
+    // in readFields we create a new bit array
+    // when we recreate serialized counters
+    this.numBits = 0;
+    this.bits = new int[0];
   }
   
   public BitfieldCounterWritable(int numBits) {
-    this.numBits = HARD_NUM_BITS;
-    int numInts = (int) Math.ceil(this.numBits / 32.0);
-    bits = new int[numInts];
-  }
-  
-  public BitfieldCounterWritable(Configuration config) {
-    //this.numBits = config.getInt(NUM_BITS, 32);
-    this.numBits = HARD_NUM_BITS;
+    this.numBits = numBits;
     int numInts = (int) Math.ceil(this.numBits / 32.0);
     bits = new int[numInts];
   }
@@ -86,5 +79,9 @@ public class BitfieldCounterWritable implements Writable {
     for (int i = 0; i < numInts; ++i) {
       bits[i] = in.readInt();
     }
+  }
+  
+  public int getNumBits() {
+    return numBits;
   }
 }

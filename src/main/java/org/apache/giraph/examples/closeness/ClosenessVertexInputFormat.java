@@ -3,8 +3,6 @@ package org.apache.giraph.examples.closeness;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.giraph.graph.BspUtils;
-import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.TextVertexInputFormat;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
@@ -22,48 +20,46 @@ public class ClosenessVertexInputFormat
     TextVertexInputFormat<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> {
 
   @Override
-  public ClosenessVertexReader createVertexReader(
-      InputSplit split, TaskAttemptContext context) throws IOException {
+  public TextVertexReader createVertexReader(InputSplit split,
+      TaskAttemptContext context)
+    throws IOException {
     return new ClosenessVertexReader();
   }
 
   /**
    * VertexReader that supports {@link ClosenessVertex}. In this case, the edge
-   * values are not used. The files should be in the following JSON format:
-   * JSONArray(<vertex id>, JSONArray(<dest vertex id>))
+   * values are not used. The files should be in the following format:
+   * <vertex id>\t<dest vertex ids>
+   * where <dest vertex ids> is a comma separated list of numbers
    */
-  public class ClosenessVertexReader
-      extends
-      TextVertexInputFormat<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable>.TextVertexReader {
+  public class ClosenessVertexReader extends
+    TextVertexReaderFromEachLineProcessed<String[]> {
+      
+    @Override
+    protected String[] preprocessLine(Text line) throws IOException {
+      return line.toString().split("\\t");
+    }
 
     @Override
-    public Vertex<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> getCurrentVertex()
-        throws IOException, InterruptedException {
-      Vertex<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> vertex = BspUtils
-          .<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> createVertex(getContext()
-              .getConfiguration());
+    protected LongWritable getId(String[] tokens) throws IOException {
+      return new LongWritable(Integer.parseInt(tokens[0]));
+    }
 
-      Text line = getRecordReader().getCurrentValue();
-      String lineStr = line.toString();
-      String parts[] = lineStr.split("\\t");
-      LongWritable vertexId = new LongWritable(Integer.parseInt(parts[0]));
+    @Override
+    protected VertexStateWritable getValue(String[] tokens) throws IOException {
+      return null;
+    }
 
-      String targetParts[] = parts[1].split(",");
+    @Override
+    protected Map<LongWritable, NullWritable> getEdges(String[] tokens)
+      throws IOException {
+      String targetParts[] = tokens[1].split(",");
       Map<LongWritable, NullWritable> edges = Maps.newHashMap();
       for (String targetStr : targetParts) {
         LongWritable targetId = new LongWritable(Integer.parseInt(targetStr));
         edges.put(targetId, NullWritable.get());
       }
-      VertexStateWritable vertexState = new VertexStateWritable(getContext()
-          .getConfiguration());
-      vertexState.getCounter().addNode(vertexId.get());
-      vertex.initialize(vertexId, vertexState, edges, null);
-      return vertex;
-    }
-
-    @Override
-    public boolean nextVertex() throws IOException, InterruptedException {
-      return getRecordReader().nextKeyValue();
+      return edges;
     }
   }
 }

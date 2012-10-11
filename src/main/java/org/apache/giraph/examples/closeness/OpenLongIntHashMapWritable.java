@@ -31,7 +31,7 @@ public class OpenLongIntHashMapWritable extends OpenLongIntHashMap
     state = new byte[capacity];
     
     for (int i = 0; i < table.length; ++i) {
-      table[i] = in.readInt();
+      table[i] = in.readLong();
       values[i] = in.readInt();
       state[i] = in.readByte();
     }
