@@ -62,6 +62,10 @@ public class BitfieldCounterWritable implements Writable {
       bits[i] |= otherB.bits[i];
     }
   }
+  
+  public int getNumBits() {
+    return numBits;
+  }
 
   @Override
   public void write(DataOutput out) throws IOException {
@@ -79,9 +83,5 @@ public class BitfieldCounterWritable implements Writable {
     for (int i = 0; i < numInts; ++i) {
       bits[i] = in.readInt();
     }
-  }
-  
-  public int getNumBits() {
-    return numBits;
   }
 }

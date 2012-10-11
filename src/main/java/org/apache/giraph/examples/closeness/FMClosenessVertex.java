@@ -20,6 +20,7 @@ package org.apache.giraph.examples.closeness;
 
 import java.util.Map;
 
+import org.apache.giraph.GiraphConfiguration;
 import org.apache.giraph.graph.GiraphJob;
 import org.apache.giraph.graph.LongXNullXVertex;
 import org.apache.hadoop.conf.Configuration;
@@ -30,40 +31,44 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 
 public class FMClosenessVertex
     extends
-    LongXNullXVertex<FMVertexStateWritable, FMSketchWritable>
+    LongXNullXVertex<FMVertexStateWritable, FMCounterWritable>
     implements Tool {
 
-  /** Class logger */
-  private static final Logger LOG = Logger.getLogger(ClosenessVertex.class);
   /** Configuration */
   private Configuration conf;
-
 
   @Override
   public void initialize(LongWritable vertexId, FMVertexStateWritable vertexValue,
       Map<LongWritable, NullWritable> edges,
-      Iterable<FMSketchWritable> messages) {
+      Iterable<FMCounterWritable> messages) {
     super.initialize(vertexId, vertexValue, edges, messages);
-    getValue().getCounter().addNode((int)getId().get());
+    if (vertexValue == null || vertexValue.getNumBuckets() <= 0) {
+      // the getConfiguration() calls seems not to work so we hardcode it here
+      int numBuckets = 32;
+       //getContext().getConfiguration().getInt(FMSketchWritable.NUM_BUCKETS,
+       //32);
+      vertexValue = new FMVertexStateWritable(numBuckets);
+      vertexValue.getCounter().addNode((int)getId().get());
+      setValue(vertexValue);
+    }
   }
   
   // Needed for Tool interface
   @Override
   public void setConf(Configuration conf) {
-    this.setConf(conf);
+    this.conf = conf;
   }
 
   @Override
-  public void compute(Iterable<FMSketchWritable> msgIterator) {
+  public void compute(Iterable<FMCounterWritable> msgIterator) {
     int seenCountBefore = getValue().getCounter().getCount();
 
-    for (FMSketchWritable inCounter : msgIterator) {
+    for (FMCounterWritable inCounter : msgIterator) {
       getValue().getCounter().merge(inCounter);
     }
 
@@ -99,7 +104,7 @@ public class FMClosenessVertex
 
   /**
    * run with: hadoop jar target/giraph-0.2-SNAPSHOT-jar-with-dependencies.jar
-   * org.apache.giraph.examples.closeness.ClosenessVertex closenessInputGraph
+   * org.apache.giraph.examples.closeness.FMClosenessVertex closenessInputGraph
    * closenessOutputGraph 32 3
    */
   @Override
@@ -108,7 +113,7 @@ public class FMClosenessVertex
         "run: Must have 4 arguments <input path> <output path> "
             + "<num bits> <# of workers>");
 
-    GiraphJob job = new GiraphJob(getConf(), getClass().getName());
+    GiraphJob job = new GiraphJob(new Configuration(), getClass().getName());
     job.getConfiguration().setVertexClass(getClass());
     job.getConfiguration().setVertexInputFormatClass(ClosenessVertexInputFormat.class);
     job.getConfiguration().setVertexOutputFormatClass(ClosenessVertexOutputFormat.class);
@@ -118,6 +123,7 @@ public class FMClosenessVertex
         Integer.parseInt(argArray[2]));
     job.getConfiguration().setWorkerConfiguration(Integer.parseInt(argArray[3]),
         Integer.parseInt(argArray[3]), 100.0f);
+    job.getConfiguration().setBoolean(GiraphConfiguration.USE_NETTY, true);
 
     return job.run(true) ? 0 : -1;
   }
@@ -130,6 +136,6 @@ public class FMClosenessVertex
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    System.exit(ToolRunner.run(new ClosenessVertex(), args));
+    System.exit(ToolRunner.run(new FMClosenessVertex(), args));
   }
 }

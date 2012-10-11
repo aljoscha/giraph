@@ -7,17 +7,18 @@ import org.apache.giraph.io.TextVertexInputFormat;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import com.google.common.collect.Maps;
 
 /**
- * VertexInputFormat that supports {@link ClosenessVertex}
+ * VertexInputFormat that supports {@link BitfieldClosenessVertex}
  */
-public class ClosenessVertexInputFormat
+public class ClosenessVertexInputFormat<V extends Writable, M extends Writable>
     extends
-    TextVertexInputFormat<LongWritable, VertexStateWritable, NullWritable, BitfieldCounterWritable> {
+    TextVertexInputFormat<LongWritable, V, NullWritable, M> {
 
   @Override
   public TextVertexReader createVertexReader(InputSplit split,
@@ -27,7 +28,7 @@ public class ClosenessVertexInputFormat
   }
 
   /**
-   * VertexReader that supports {@link ClosenessVertex}. In this case, the edge
+   * VertexReader that supports {@link BitfieldClosenessVertex}. In this case, the edge
    * values are not used. The files should be in the following format:
    * <vertex id>\t<dest vertex ids>
    * where <dest vertex ids> is a comma separated list of numbers
@@ -46,7 +47,7 @@ public class ClosenessVertexInputFormat
     }
 
     @Override
-    protected VertexStateWritable getValue(String[] tokens) throws IOException {
+    protected V getValue(String[] tokens) throws IOException {
       return null;
     }
 

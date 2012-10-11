@@ -5,41 +5,32 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
 
-public class FMSketchWritable implements Writable {
+public class FMCounterWritable implements Writable {
   public final static String NUM_BUCKETS = "fmsketch.numbuckets";
-  private final static int HARD_NUM_BUCKETS = 32;
   private final static double MAGIC_CONSTANT = 0.77351;
   private final static int MAX_LENGHT = 32;
   private int numBuckets;
   private int[] buckets;
   boolean initialized = false;
 
-  public FMSketchWritable() {
-    this.numBuckets = HARD_NUM_BUCKETS;
+  public FMCounterWritable() {
+    this.numBuckets = 0;
     this.buckets = new int[numBuckets];
     initialized = true;
   }
 
-  public FMSketchWritable(int numBuckets) {
-    this.numBuckets = HARD_NUM_BUCKETS;
+  public FMCounterWritable(int numBuckets) {
+    this.numBuckets = numBuckets;
     buckets = new int[this.numBuckets];
     initialized = true;
   }
 
-  public FMSketchWritable(Configuration config) {
-    this.numBuckets = config.getInt(NUM_BUCKETS, 32);
-    this.numBuckets = HARD_NUM_BUCKETS;
-    buckets = new int[numBuckets];
-    initialized = true;
-  }
-
-  public FMSketchWritable copy() {
-    FMSketchWritable result = new FMSketchWritable();
+  public FMCounterWritable copy() {
+    FMCounterWritable result = new FMCounterWritable();
     result.numBuckets = this.numBuckets;
     result.buckets = Arrays.copyOf(this.buckets, this.buckets.length);
     result.initialized = true;
@@ -85,15 +76,19 @@ public class FMSketchWritable implements Writable {
     return count;
   }
 
-  public void merge(FMSketchWritable other) {
-    Preconditions.checkArgument(other instanceof FMSketchWritable,
+  public void merge(FMCounterWritable other) {
+    Preconditions.checkArgument(other instanceof FMCounterWritable,
         "Other is not a FMSketchWritable.");
-    FMSketchWritable otherB = (FMSketchWritable) other;
+    FMCounterWritable otherB = (FMCounterWritable) other;
     Preconditions.checkState(this.numBuckets == otherB.numBuckets,
         "Number of buckets does not match.");
     for (int i = 0; i < buckets.length; ++i) {
       buckets[i] |= otherB.buckets[i];
     }
+  }
+  
+  public int getNumBuckets() {
+    return numBuckets;
   }
 
   @Override

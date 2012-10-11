@@ -4,17 +4,15 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.io.Writable;
-
-public class VertexStateWritable implements Writable {
+public class BitfieldVertexStateWritable implements ClosenessVertexStateWritable {
   private BitfieldCounterWritable counter;
   private OpenLongIntHashMapWritable shortestPaths;
   
-  public VertexStateWritable() {
+  public BitfieldVertexStateWritable() {
     this.counter = new BitfieldCounterWritable();
     this.shortestPaths = new OpenLongIntHashMapWritable();
   }
-  public VertexStateWritable(int numBits) {
+  public BitfieldVertexStateWritable(int numBits) {
     counter = new BitfieldCounterWritable(numBits);
     shortestPaths = new OpenLongIntHashMapWritable();
   }

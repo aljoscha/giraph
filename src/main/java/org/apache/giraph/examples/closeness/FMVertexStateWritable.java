@@ -4,28 +4,30 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Writable;
-
-public class FMVertexStateWritable implements Writable {
-  private FMSketchWritable counter;
+public class FMVertexStateWritable implements ClosenessVertexStateWritable {
+  private FMCounterWritable counter;
   private OpenLongIntHashMapWritable shortestPaths;
   
   public FMVertexStateWritable() {
-    this.counter = new FMSketchWritable();
+    this.counter = new FMCounterWritable();
     this.shortestPaths = new OpenLongIntHashMapWritable();
   }
-  public FMVertexStateWritable(Configuration conf) {
-    counter = new FMSketchWritable(conf);
-    shortestPaths = new OpenLongIntHashMapWritable();
+  
+  public FMVertexStateWritable(int numBuckets) {
+    this.counter = new FMCounterWritable(numBuckets);
+    this.shortestPaths = new OpenLongIntHashMapWritable();
   }
   
-  public FMSketchWritable getCounter() {
+  public FMCounterWritable getCounter() {
     return counter;
   }
 
   public OpenLongIntHashMapWritable getShortestPaths() {
     return shortestPaths;
+  }
+  
+  public int getNumBuckets() {
+    return counter.getNumBuckets();
   }
 
   @Override

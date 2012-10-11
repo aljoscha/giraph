@@ -11,10 +11,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.mahout.math.list.LongArrayList;
 
 /**
- * VertexOutputFormat that supports {@link ClosenessVertex}
+ * VertexOutputFormat that writes the closeness (farness) value determined from
+ * the shortest paths stored in a ClosenessVertexStateWritables map.
  */
-public class ClosenessVertexOutputFormat extends
-    TextVertexOutputFormat<LongWritable, VertexStateWritable, NullWritable> {
+public class ClosenessVertexOutputFormat<V extends ClosenessVertexStateWritable> extends
+    TextVertexOutputFormat<LongWritable, V, NullWritable> {
 
   @Override
   public TextVertexWriter createVertexWriter(
@@ -22,15 +23,12 @@ public class ClosenessVertexOutputFormat extends
     return new ClosenessVertexWriter();
   }
 
-  /**
-   * VertexWriter that supports {@link ClosenessVertex}
-   */
   public class ClosenessVertexWriter extends
       TextVertexWriter {
 
     @Override
     public void writeVertex(
-        Vertex<LongWritable, VertexStateWritable, NullWritable, ?> vertex)
+        Vertex<LongWritable, V, NullWritable, ?> vertex)
         throws IOException, InterruptedException {
       StringBuilder result = new StringBuilder();
       result.append(vertex.getId().get());

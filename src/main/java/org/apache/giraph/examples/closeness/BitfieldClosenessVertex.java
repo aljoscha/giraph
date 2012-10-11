@@ -34,8 +34,8 @@ import org.apache.hadoop.util.ToolRunner;
 
 import com.google.common.base.Preconditions;
 
-public class ClosenessVertex extends
-    LongXNullXVertex<VertexStateWritable, BitfieldCounterWritable> implements
+public class BitfieldClosenessVertex extends
+    LongXNullXVertex<BitfieldVertexStateWritable, BitfieldCounterWritable> implements
     Tool {
 
   /** Configuration */
@@ -43,7 +43,7 @@ public class ClosenessVertex extends
 
   @Override
   public void initialize(LongWritable vertexId,
-      VertexStateWritable vertexValue, Map<LongWritable, NullWritable> edges,
+      BitfieldVertexStateWritable vertexValue, Map<LongWritable, NullWritable> edges,
       Iterable<BitfieldCounterWritable> messages) {
     super.initialize(vertexId, vertexValue, edges, messages);
     if (vertexValue == null || vertexValue.getNumBits() <= 0) {
@@ -51,7 +51,7 @@ public class ClosenessVertex extends
       int numBits = 32;
        //getContext().getConfiguration().getInt(BitfieldCounterWritable.NUM_BITS,
        //32);
-      vertexValue = new VertexStateWritable(numBits);
+      vertexValue = new BitfieldVertexStateWritable(numBits);
       vertexValue.getCounter().addNode(getId().get());
       setValue(vertexValue);
     }
@@ -103,7 +103,7 @@ public class ClosenessVertex extends
 
   /**
    * run with: hadoop jar target/giraph-0.2-SNAPSHOT-jar-with-dependencies.jar
-   * org.apache.giraph.examples.closeness.ClosenessVertex closenessInputGraph
+   * org.apache.giraph.examples.closeness.BitfieldClosenessVertex closenessInputGraph
    * closenessOutputGraph 32 3
    */
   @Override
@@ -137,6 +137,6 @@ public class ClosenessVertex extends
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    System.exit(ToolRunner.run(new ClosenessVertex(), args));
+    System.exit(ToolRunner.run(new BitfieldClosenessVertex(), args));
   }
 }
