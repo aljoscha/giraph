@@ -34,23 +34,51 @@ import org.apache.hadoop.util.ToolRunner;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Graph based implementation of the centrality algorithm detailed in
+ * "Centralities in Large Networks: Algorithms and Observations"
+ * (http://www.cs.cmu.edu/~ukang/papers/CentralitySDM2011.pdf).
+ * 
+ * The authors used MapReduce but the algorithm is iterative and perfectly
+ * suited for a graph based implementation.
+ * 
+ * This Vertex uses bit fields to store the neighbour information, this does not
+ * work for larger graphs due to the horrendous memory requirements. For larger
+ * graphs use {@link FMClosenessVertex} which uses a Flajolet-Martin sketch, as
+ * also detailed in the aforementioned paper.
+ * 
+ * The state held at each vertex is a bit more complex, therefore we need a
+ * custom Writable, {@link BitfieldVertexStateWritable} that holds the bit field
+ * and a hash map holding the shortest paths as detailed in the paper.
+ * 
+ * @author Aljoscha Krettek
+ * 
+ */
 public class BitfieldClosenessVertex extends
-    LongXNullXVertex<BitfieldVertexStateWritable, BitfieldCounterWritable> implements
-    Tool {
+    LongXNullXVertex<BitfieldVertexStateWritable, BitfieldCounterWritable>
+    implements Tool {
 
   /** Configuration */
   private Configuration conf;
 
+  /**
+   * Initialize the vertex. Create a new VertexValueWritable with the desired
+   * number of bits in the bit field if none is available already.
+   */
   @Override
   public void initialize(LongWritable vertexId,
-      BitfieldVertexStateWritable vertexValue, Map<LongWritable, NullWritable> edges,
+      BitfieldVertexStateWritable vertexValue,
+      Map<LongWritable, NullWritable> edges,
       Iterable<BitfieldCounterWritable> messages) {
     super.initialize(vertexId, vertexValue, edges, messages);
+    // the ClosenessVertexInputFormat passes null for vertexValue
+    // if this is called when restoring a vertex from serialized form
+    // we get passed a proper vertexValue
     if (vertexValue == null || vertexValue.getNumBits() <= 0) {
       // the getConfiguration() calls seems not to work so we hardcode it here
       int numBits = 32;
-       //getContext().getConfiguration().getInt(BitfieldCounterWritable.NUM_BITS,
-       //32);
+      // getContext().getConfiguration().getInt(BitfieldCounterWritable.NUM_BITS,
+      // 32);
       vertexValue = new BitfieldVertexStateWritable(numBits);
       vertexValue.getCounter().addNode(getId().get());
       setValue(vertexValue);
@@ -63,6 +91,13 @@ public class BitfieldClosenessVertex extends
     this.conf = conf;
   }
 
+  /**
+   * Simply compute the new vertex value by merging the incoming bit fields into
+   * our own bit fields. Also update the shortest paths map that is used to
+   * determine the centrality measure when the algorithm terminates.
+   * 
+   * See paper for more information.
+   */
   @Override
   public void compute(Iterable<BitfieldCounterWritable> msgIterator) {
     int seenCountBefore = getValue().getCounter().getCount();
@@ -103,8 +138,8 @@ public class BitfieldClosenessVertex extends
 
   /**
    * run with: hadoop jar target/giraph-0.2-SNAPSHOT-jar-with-dependencies.jar
-   * org.apache.giraph.examples.closeness.BitfieldClosenessVertex closenessInputGraph
-   * closenessOutputGraph 32 3
+   * org.apache.giraph.examples.closeness.BitfieldClosenessVertex
+   * closenessInputGraph closenessOutputGraph 32 3
    */
   @Override
   public int run(String[] argArray) throws Exception {

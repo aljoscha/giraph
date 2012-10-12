@@ -7,6 +7,12 @@ import java.io.IOException;
 import org.apache.hadoop.io.Writable;
 import org.apache.mahout.math.map.OpenLongIntHashMap;
 
+/**
+ * {@link Writable} version of {@link OpenLongIntHashMap}.
+ * 
+ * @author Aljoscha Krettek
+ *
+ */
 @SuppressWarnings("serial")
 public class OpenLongIntHashMapWritable extends OpenLongIntHashMap
     implements Writable {

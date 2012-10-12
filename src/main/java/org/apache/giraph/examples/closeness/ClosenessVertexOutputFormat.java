@@ -12,23 +12,26 @@ import org.apache.mahout.math.list.LongArrayList;
 
 /**
  * VertexOutputFormat that writes the closeness (farness) value determined from
- * the shortest paths stored in a ClosenessVertexStateWritables map.
+ * the shortest paths stored in a ClosenessVertexStateWritable map.
  */
-public class ClosenessVertexOutputFormat<V extends ClosenessVertexStateWritable> extends
-    TextVertexOutputFormat<LongWritable, V, NullWritable> {
+public class ClosenessVertexOutputFormat<V extends ClosenessVertexStateWritable>
+    extends TextVertexOutputFormat<LongWritable, V, NullWritable> {
 
   @Override
-  public TextVertexWriter createVertexWriter(
-      TaskAttemptContext context) throws IOException, InterruptedException {
+  public TextVertexWriter createVertexWriter(TaskAttemptContext context)
+      throws IOException, InterruptedException {
     return new ClosenessVertexWriter();
   }
 
-  public class ClosenessVertexWriter extends
-      TextVertexWriter {
+  public class ClosenessVertexWriter extends TextVertexWriter {
 
+    /**
+     * Compute the closeness (farness) value as detailed in the paper. Note that
+     * the value computed here is actually the farness, which is the inverse of
+     * the closeness.
+     */
     @Override
-    public void writeVertex(
-        Vertex<LongWritable, V, NullWritable, ?> vertex)
+    public void writeVertex(Vertex<LongWritable, V, NullWritable, ?> vertex)
         throws IOException, InterruptedException {
       StringBuilder result = new StringBuilder();
       result.append(vertex.getId().get());
@@ -41,21 +44,22 @@ public class ClosenessVertexOutputFormat<V extends ClosenessVertexStateWritable>
         if (key < 1) {
           continue;
         }
-        int newlyReachable = shortestPaths.get(key) - shortestPaths.get(key-1);
+        int newlyReachable = shortestPaths.get(key)
+            - shortestPaths.get(key - 1);
         sumLengths += key * newlyReachable;
         if (shortestPaths.get(key) > numVerticesReachable) {
           numVerticesReachable = shortestPaths.get(key);
         }
       }
-      
+
       double closeness = 0.0;
       if (numVerticesReachable > 0) {
-        closeness = (double)sumLengths / (double)numVerticesReachable;
+        closeness = (double) sumLengths / (double) numVerticesReachable;
       }
-      
+
       result.append(closeness);
       result.append("\t");
-      
+
       LongArrayList keys = shortestPaths.keys();
       keys.sort();
       for (long key : keys.elements()) {
@@ -64,7 +68,7 @@ public class ClosenessVertexOutputFormat<V extends ClosenessVertexStateWritable>
         result.append(shortestPaths.get(key));
         result.append(" ");
       }
-      
+
       getRecordWriter().write(new Text(result.toString()), null);
     }
   }

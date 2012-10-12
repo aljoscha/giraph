@@ -34,30 +34,46 @@ import org.apache.hadoop.util.ToolRunner;
 
 import com.google.common.base.Preconditions;
 
-public class FMClosenessVertex
-    extends
-    LongXNullXVertex<FMVertexStateWritable, FMCounterWritable>
-    implements Tool {
+/**
+ * Graph based implementation of the centrality algorithm detailed in
+ * "Centralities in Large Networks: Algorithms and Observations"
+ * (http://www.cs.cmu.edu/~ukang/papers/CentralitySDM2011.pdf).
+ * 
+ * The authors used MapReduce but the algorithm is iterative and perfectly
+ * suited for a graph based implementation.
+ * 
+ * This Vertex uses a Flajolet-Martin Sketch to count the number of neighbours
+ * as detailed in the aforementioned paper.
+ * 
+ * The state held at each vertex is a bit more complex, therefore we need a
+ * custom Writable, {@link FMVertexStateWritable} that holds the FM-Sketch and a
+ * hash map holding the shortest paths as detailed in the paper.
+ * 
+ * @author Aljoscha Krettek
+ * 
+ */
+public class FMClosenessVertex extends
+    LongXNullXVertex<FMVertexStateWritable, FMCounterWritable> implements Tool {
 
   /** Configuration */
   private Configuration conf;
 
   @Override
-  public void initialize(LongWritable vertexId, FMVertexStateWritable vertexValue,
-      Map<LongWritable, NullWritable> edges,
+  public void initialize(LongWritable vertexId,
+      FMVertexStateWritable vertexValue, Map<LongWritable, NullWritable> edges,
       Iterable<FMCounterWritable> messages) {
     super.initialize(vertexId, vertexValue, edges, messages);
     if (vertexValue == null || vertexValue.getNumBuckets() <= 0) {
       // the getConfiguration() calls seems not to work so we hardcode it here
       int numBuckets = 32;
-       //getContext().getConfiguration().getInt(FMSketchWritable.NUM_BUCKETS,
-       //32);
+      // getContext().getConfiguration().getInt(FMSketchWritable.NUM_BUCKETS,
+      // 32);
       vertexValue = new FMVertexStateWritable(numBuckets);
-      vertexValue.getCounter().addNode((int)getId().get());
+      vertexValue.getCounter().addNode((int) getId().get());
       setValue(vertexValue);
     }
   }
-  
+
   // Needed for Tool interface
   @Override
   public void setConf(Configuration conf) {
@@ -115,14 +131,16 @@ public class FMClosenessVertex
 
     GiraphJob job = new GiraphJob(new Configuration(), getClass().getName());
     job.getConfiguration().setVertexClass(getClass());
-    job.getConfiguration().setVertexInputFormatClass(ClosenessVertexInputFormat.class);
-    job.getConfiguration().setVertexOutputFormatClass(ClosenessVertexOutputFormat.class);
+    job.getConfiguration().setVertexInputFormatClass(
+        ClosenessVertexInputFormat.class);
+    job.getConfiguration().setVertexOutputFormatClass(
+        ClosenessVertexOutputFormat.class);
     FileInputFormat.addInputPath(job.getInternalJob(), new Path(argArray[0]));
     FileOutputFormat.setOutputPath(job.getInternalJob(), new Path(argArray[1]));
     job.getConfiguration().setInt(BitfieldCounterWritable.NUM_BITS,
         Integer.parseInt(argArray[2]));
-    job.getConfiguration().setWorkerConfiguration(Integer.parseInt(argArray[3]),
-        Integer.parseInt(argArray[3]), 100.0f);
+    job.getConfiguration().setWorkerConfiguration(
+        Integer.parseInt(argArray[3]), Integer.parseInt(argArray[3]), 100.0f);
     job.getConfiguration().setBoolean(GiraphConfiguration.USE_NETTY, true);
 
     return job.run(true) ? 0 : -1;

@@ -14,28 +14,27 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import com.google.common.collect.Maps;
 
 /**
- * VertexInputFormat that supports {@link BitfieldClosenessVertex}
+ * VertexInputFormat that supports {@link BitfieldClosenessVertex} and
+ * {@FMClosenessVertex}.
  */
 public class ClosenessVertexInputFormat<V extends Writable, M extends Writable>
-    extends
-    TextVertexInputFormat<LongWritable, V, NullWritable, M> {
+    extends TextVertexInputFormat<LongWritable, V, NullWritable, M> {
 
   @Override
   public TextVertexReader createVertexReader(InputSplit split,
-      TaskAttemptContext context)
-    throws IOException {
+      TaskAttemptContext context) throws IOException {
     return new ClosenessVertexReader();
   }
 
   /**
-   * VertexReader that supports {@link BitfieldClosenessVertex}. In this case, the edge
-   * values are not used. The files should be in the following format:
-   * <vertex id>\t<dest vertex ids>
-   * where <dest vertex ids> is a comma separated list of numbers
+   * VertexReader that supports {@link BitfieldClosenessVertex}. In this case,
+   * the edge values are not used. The files should be in the following format:
+   * <vertex id>\t<dest vertex ids> where <dest vertex ids> is a comma separated
+   * list of numbers
    */
   public class ClosenessVertexReader extends
-    TextVertexReaderFromEachLineProcessed<String[]> {
-      
+      TextVertexReaderFromEachLineProcessed<String[]> {
+
     @Override
     protected String[] preprocessLine(Text line) throws IOException {
       return line.toString().split("\\t");
@@ -53,7 +52,7 @@ public class ClosenessVertexInputFormat<V extends Writable, M extends Writable>
 
     @Override
     protected Map<LongWritable, NullWritable> getEdges(String[] tokens)
-      throws IOException {
+        throws IOException {
       String targetParts[] = tokens[1].split(",");
       Map<LongWritable, NullWritable> edges = Maps.newHashMap();
       for (String targetStr : targetParts) {

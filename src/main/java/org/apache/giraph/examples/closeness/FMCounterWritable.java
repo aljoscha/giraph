@@ -9,6 +9,12 @@ import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * A counter for counting unique vertex ids using a Flajolet-Martin Sketch.
+ * 
+ * @author Aljoscha Krettek
+ * 
+ */
 public class FMCounterWritable implements Writable {
   public final static String NUM_BUCKETS = "fmsketch.numbuckets";
   private final static double MAGIC_CONSTANT = 0.77351;
@@ -17,18 +23,29 @@ public class FMCounterWritable implements Writable {
   private int[] buckets;
   boolean initialized = false;
 
+  /**
+   * Create a zero-bucket FM-Sketch. This is needed because Giraph requires a
+   * no-argument constructor.
+   */
   public FMCounterWritable() {
     this.numBuckets = 0;
     this.buckets = new int[numBuckets];
     initialized = true;
   }
 
+  /**
+   * Create a FM-Sketch with the specified number of buckets, bucket size is
+   * always 32 bits.
+   */
   public FMCounterWritable(int numBuckets) {
     this.numBuckets = numBuckets;
     buckets = new int[this.numBuckets];
     initialized = true;
   }
 
+  /**
+   * Create a copy of the FM-Sketch by copying the internal integer array.
+   */
   public FMCounterWritable copy() {
     FMCounterWritable result = new FMCounterWritable();
     result.numBuckets = this.numBuckets;
@@ -37,6 +54,9 @@ public class FMCounterWritable implements Writable {
     return result;
   }
 
+  /**
+   * Determine the first set bit in an interger.
+   */
   private int firstOneBit(int value) {
     int index = 0;
     while ((value & 1) == 0 && index < 32) {
@@ -46,6 +66,11 @@ public class FMCounterWritable implements Writable {
     return index;
   }
 
+  /**
+   * Count the passed in node id.
+   * 
+   * @param n
+   */
   public void addNode(int n) {
     int hash = new Integer(n).hashCode();
     // probably bad
@@ -53,13 +78,16 @@ public class FMCounterWritable implements Writable {
       hash *= -1;
     }
     if (numBuckets <= 0) {
-      throw new RuntimeException("WHAT UP: " + initialized);
+      throw new RuntimeException("OH Ohhh, we have no buckets: " + initialized);
     }
     int bucketIndex = hash % numBuckets;
     int bitIndex = firstOneBit(hash / numBuckets);
     buckets[bucketIndex] |= (1 << bitIndex);
   }
 
+  /**
+   * Return the estimate for the number of unique ids.
+   */
   public int getCount() {
     int S = 0;
     for (int i = 0; i < buckets.length; ++i) {
@@ -76,6 +104,9 @@ public class FMCounterWritable implements Writable {
     return count;
   }
 
+  /**
+   * Merge this FM-Sketch with the other one.
+   */
   public void merge(FMCounterWritable other) {
     Preconditions.checkArgument(other instanceof FMCounterWritable,
         "Other is not a FMSketchWritable.");
@@ -86,7 +117,10 @@ public class FMCounterWritable implements Writable {
       buckets[i] |= otherB.buckets[i];
     }
   }
-  
+
+  /**
+   * Return the number of buckets.
+   */
   public int getNumBuckets() {
     return numBuckets;
   }
