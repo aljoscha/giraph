@@ -637,7 +637,7 @@ under the License.
 	  <groupId>commons-collections</groupId>
 	  <artifactId>commons-collections</artifactId>
 	  <scope>provided</scope>
-	  <version>3.2.1</version>
+	  <version>3.2.2</version>
 	</dependency>
       </dependencies>
       <build>
